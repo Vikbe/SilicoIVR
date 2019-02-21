@@ -1,0 +1,19 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+@model HomeViewModel
+
+    <div class="text-center">
+        <h1 class="display-4">Welcome</h1>
+        
+
+        <form method="post" action="/Home/AddAgent">
+           Extension: <input asp-for="Extension" />
+           PhoneNumber: <input asp-for="PhoneNumber" />
+           Name  <input asp-for="Name" />
+            <button type="submit">Post</button>
+        </form>
+
+
+    </div>
