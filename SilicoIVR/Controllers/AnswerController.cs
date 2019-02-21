@@ -58,7 +58,7 @@ namespace SilicoIVR.Controllers
                 switch (digits)
                 {
                     case "0":
-                        response.Say("You selected assmunching. Good for you!");
+                        response.Say("You selected something Good for you!");
                         break;
                   
                     default:
