@@ -32,7 +32,8 @@ namespace SilicoIVR.Controllers
 
             response.Append(
                 new Gather(numDigits: 2, action: new Uri("/answer/gather", UriKind.Relative))
-                    .Say("Thanks for calling Silico, if you know your parties extension, enter it now. If you'd like to leave a voice message, press 0 and your call will be returned shortly."));
+                    .Play(new Uri("/greeting.wav", UriKind.Relative)));    
+                //.Say("Thanks for calling Silico, if you know your parties extension, enter it now. If you'd like to leave a voice message, press 0 and your call will be returned shortly."));
 
             //// If the user doesn't enter input, loop
 
@@ -57,8 +58,8 @@ namespace SilicoIVR.Controllers
             {
                 switch (digits)
                 {
-                    case "0":
-                        response.Say("You selected something Good for you!");
+                    case "00":
+                        response.Redirect(new Uri("/record/voiceMail", UriKind.Relative));
                         break;
                   
                     default:
@@ -143,6 +144,8 @@ namespace SilicoIVR.Controllers
             return TwiML(response);
 
         }
+
+
 
     }
 }
