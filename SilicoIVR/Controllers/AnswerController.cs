@@ -10,6 +10,7 @@ using Twilio.AspNet.Core;
 using Twilio.Rest.Lookups.V1;
 using Twilio.TwiML;
 using Twilio.TwiML.Voice;
+using Task = System.Threading.Tasks.Task;
 
 namespace SilicoIVR.Controllers
 {
@@ -39,7 +40,7 @@ namespace SilicoIVR.Controllers
         {
             var response = new VoiceResponse();
 
-          
+            LogCall(call).Wait();
 
             response.Append(
                 new Gather(numDigits: 1, action: new Uri("/answer/gather/language", UriKind.Relative))
@@ -330,7 +331,7 @@ namespace SilicoIVR.Controllers
         }
 
 
-        private void LogCall(CallItem call)
+        private async Task LogCall(CallItem call)
         {
             TwilioClient.Init(_accountSid, _authToken);
 
@@ -349,15 +350,17 @@ namespace SilicoIVR.Controllers
 
             var addOnData = JObject.Parse(caller.AddOns.ToString()); 
             //NOT DOOONNNE
-            _context.Calls.Add(new Call({
-                SID = call.CallSid, 
-                From = call.From, 
-                To = call.To, 
+            _context.Calls.Add(new Call {
+                SID = call.CallSid,
+                From = call.From,
+                To = call.To,
                 Zipcode = call.CallerZip,
-               
-                State = call.CallerState
+                City = call.CallerCity,
+                State = call.CallerState,
+                Country = call.CallerCountry
+            });
 
-            }))
+           await _context.SaveChangesAsync();
         }
     }
 }

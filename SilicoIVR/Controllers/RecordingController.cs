@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SilicoIVR.Models;
+using SilicoIVR.Models.DB;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -72,43 +73,43 @@ namespace SilicoIVR.Controllers
 
         }
 
-        [HttpPost]
-        [Route("record/callback")]
-        public async Task RecordCallback(RecordingCallback callback, CallItem call)
-        {
+        //[HttpPost]
+        //[Route("record/callback")]
+        //public async Task RecordCallback(RecordingCallback callback, CallItem call)
+        //{
            
 
-            //Records the message and transcribes it to text
-            if (callback.RecordingStatus == "completed")
-            {
-                using (var client = new HttpClient())
-                {
-                    var ret = await client.GetAsync(callback.RecordingUrl);
+        //    //Records the message and transcribes it to text
+        //    if (callback.RecordingStatus == "completed")
+        //    {
+        //        using (var client = new HttpClient())
+        //        {
+        //            var ret = await client.GetAsync(callback.RecordingUrl);
 
 
 
-                    ret.EnsureSuccessStatusCode();
+        //            ret.EnsureSuccessStatusCode();
                  
-                    using (var dataStream = await ret.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                    {
+        //            using (var dataStream = await ret.Content.ReadAsStreamAsync().ConfigureAwait(false))
+        //            {
 
-                        //Path shouldn't be hardcoded
-                        using (var fileStream = new FileStream($@"D:\\Silico\\SilicoIVR\\{callback.RecordingSid}.wav", FileMode.Create, FileAccess.Write, FileShare.Write))
-                        {
-                            await dataStream.CopyToAsync(fileStream).ConfigureAwait(false);
-                            fileStream.Close();
-                        }
+        //                //Path shouldn't be hardcoded
+        //                using (var fileStream = new FileStream($@"D:\\Silico\\SilicoIVR\\{callback.RecordingSid}.wav", FileMode.Create, FileAccess.Write, FileShare.Write))
+        //                {
+        //                    await dataStream.CopyToAsync(fileStream).ConfigureAwait(false);
+        //                    fileStream.Close();
+        //                }
 
-                    }
+        //            }
 
 
-                }
+        //        }
 
-                var text = await VoiceTranscriber.RecognizeSpeechAsync($@"D:\Silico\SilicoIVR\{callback.RecordingSid}.wav");
-                SendTranscription(text);
-            }
+        //        var text = await VoiceTranscriber.RecognizeSpeechAsync($@"D:\Silico\SilicoIVR\{callback.RecordingSid}.wav");
+        //        SendTranscription(text);
+        //    }
 
-        }
+        //}
 
 
         [HttpPost]
@@ -139,6 +140,23 @@ namespace SilicoIVR.Controllers
                     //Get the associated CallSid from the recording json
                     url = addOns["results"]?["ibm_watson_speechtotext"]?["links"]?["recording"].ToString();
                     res = await client.RequestAsync(new Twilio.Http.Request(Twilio.Http.HttpMethod.Get, url + ".json"));
+
+                    var recResource = JObject.Parse(res.Content);
+                    var callSid = recResource["call_sid"]?.ToString();
+
+                    var call = _context.Calls.Where(c => c.SID == callSid).FirstOrDefault();
+
+                    var recording = _context.Recordings.Add(new Recording
+                    {
+                        SID = recResource["sid"]?.ToString(),
+                        duration = Double.Parse(recResource["duration"]?.ToString()), 
+                        Transcription = transcript.transcript,
+                        Call = call
+                    });
+                  
+                    await _context.SaveChangesAsync();
+
+                    SendEmail(recording.Entity);
                 }
 
             }
@@ -177,22 +195,22 @@ namespace SilicoIVR.Controllers
         }
 
 
-        private void SendTranscription(string transcription)
-        {
-            TwilioClient.Init(_accountSid, _authToken);
+        //private void SendTranscription(string transcription)
+        //{
+        //    TwilioClient.Init(_accountSid, _authToken);
 
 
-            string body = $@"You have a message from: I DONT FUCKING KNOW YET!
-                            Transcription: 
-                            {transcription}";
+        //    string body = $@"You have a message from: I DONT FUCKING KNOW YET!
+        //                    Transcription: 
+        //                    {transcription}";
 
-            var message = MessageResource.Create(
-                body: body, 
-                from: new Twilio.Types.PhoneNumber("+16477979877"),
-                to: new Twilio.Types.PhoneNumber("+16476976677")
-            );
+        //    var message = MessageResource.Create(
+        //        body: body, 
+        //        from: new Twilio.Types.PhoneNumber("+16477979877"),
+        //        to: new Twilio.Types.PhoneNumber("+16476976677")
+        //    );
 
-        } 
+        //} 
 
         private void LookUpAddons(string number)
         {
@@ -227,6 +245,25 @@ namespace SilicoIVR.Controllers
 
             //    }
 
+        }
+
+        //This is terrible and shouldnt be like this, but im tired
+        private void SendEmail(Recording recording)
+        {
+            var call = recording.Call;
+            using (var client = new SmtpClient()) {
+                client.Credentials = new NetworkCredential("apikey", "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");
+                client.Host = "smtp.sendgrid.net";
+                client.Port = 587;
+
+                var message = new MailMessage();
+                message.From = new MailAddress("ivr@silico.ca");
+                message.To.Add("viktor@silico.ca");
+                message.Subject = $"Voice message from {call.From}"; 
+                message.Body =  $@"You have a message from: {call.From}!
+                            Transcription: {recording.Transcription}";
+                client.Send(message);
+            }
         }
 
     }

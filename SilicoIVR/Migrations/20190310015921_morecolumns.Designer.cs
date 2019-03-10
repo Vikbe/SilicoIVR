@@ -2,15 +2,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SilicoIVR.Models;
 
 namespace SilicoIVR.Migrations
 {
     [DbContext(typeof(SilicoDBContext))]
-    partial class SilicoDBContextModelSnapshot : ModelSnapshot
+    [Migration("20190310015921_morecolumns")]
+    partial class morecolumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -69,8 +71,6 @@ namespace SilicoIVR.Migrations
                     b.Property<int>("CallID");
 
                     b.Property<string>("SID");
-
-                    b.Property<string>("Transcription");
 
                     b.Property<double>("duration");
 
