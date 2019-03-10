@@ -2,15 +2,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SilicoIVR.Models;
 
 namespace SilicoIVR.Migrations
 {
     [DbContext(typeof(SilicoDBContext))]
-    partial class SilicoDBContextModelSnapshot : ModelSnapshot
+    [Migration("20190309144916_ivroptions")]
+    partial class ivroptions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -35,48 +37,6 @@ namespace SilicoIVR.Migrations
                     b.ToTable("Agents");
                 });
 
-            modelBuilder.Entity("SilicoIVR.Models.Call", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Country");
-
-                    b.Property<string>("From");
-
-                    b.Property<string>("SID");
-
-                    b.Property<string>("State");
-
-                    b.Property<string>("To");
-
-                    b.Property<string>("Zipcode");
-
-                    b.HasKey("ID");
-
-                    b.ToTable("Calls");
-                });
-
-            modelBuilder.Entity("SilicoIVR.Models.DB.Recording", b =>
-                {
-                    b.Property<int>("ID")
-                        .ValueGeneratedOnAdd()
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<int>("CallID");
-
-                    b.Property<string>("SID");
-
-                    b.Property<double>("duration");
-
-                    b.HasKey("ID");
-
-                    b.HasIndex("CallID");
-
-                    b.ToTable("Recordings");
-                });
-
             modelBuilder.Entity("SilicoIVR.Models.IvrOption", b =>
                 {
                     b.Property<int>("ID")
@@ -92,14 +52,6 @@ namespace SilicoIVR.Migrations
                     b.HasKey("ID");
 
                     b.ToTable("IvrOptions");
-                });
-
-            modelBuilder.Entity("SilicoIVR.Models.DB.Recording", b =>
-                {
-                    b.HasOne("SilicoIVR.Models.Call", "Call")
-                        .WithMany()
-                        .HasForeignKey("CallID")
-                        .OnDelete(DeleteBehavior.Cascade);
                 });
 #pragma warning restore 612, 618
         }

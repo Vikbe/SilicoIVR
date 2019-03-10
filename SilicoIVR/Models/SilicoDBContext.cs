@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SilicoIVR.Models.DB;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,5 +14,8 @@ namespace SilicoIVR.Models
         { }
 
         public DbSet<Agent> Agents { get; set; }
+        public DbSet<IvrOption> IvrOptions { get; set; }
+        public DbSet<Call> Calls { get; set; }
+        public DbSet<Recording> Recordings { get; set; }
     }
 }

@@ -1,14 +1,20 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SilicoIVR.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
+using System.Net.Mail;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Twilio;
 using Twilio.AspNet.Core;
 using Twilio.Rest.Api.V2010.Account;
+using Twilio.Rest.Lookups.V1;
 using Twilio.TwiML;
 using Twilio.TwiML.Voice;
 using Task = System.Threading.Tasks.Task;
@@ -40,13 +46,23 @@ namespace SilicoIVR.Controllers
         public TwiMLResult VoiceMail(CallItem call)
         {
 
+            if (call.CallStatus == "completed") {
+                
+                return new TwiMLResult();
+            }
+           
+
+            //LookUpAddons(call.From);
             var response = new VoiceResponse();
-            response.Play(new Uri("/MessagePrompt.wav", UriKind.Relative));
+            response.Play(new Uri("/AudioFiles/NotAvailableEn.mp3", UriKind.Relative));
          
             response.Record(
-                maxLength: 20,
-                playBeep: true, 
-                recordingStatusCallback: new Uri("/record/callback", UriKind.Relative)
+                maxLength: 120,
+                playBeep: true 
+                
+                
+                
+                //recordingStatusCallback: new Uri("/record/callback", UriKind.Relative)
             );
 
          
@@ -72,7 +88,7 @@ namespace SilicoIVR.Controllers
 
 
                     ret.EnsureSuccessStatusCode();
-                    // Asynchronously read the response
+                 
                     using (var dataStream = await ret.Content.ReadAsStreamAsync().ConfigureAwait(false))
                     {
 
@@ -92,7 +108,73 @@ namespace SilicoIVR.Controllers
                 SendTranscription(text);
             }
 
-        } 
+        }
+
+
+        [HttpPost]
+        [Route("record/watson")]
+        public async Task Watsoncallback()
+        {
+            
+            var addOns = JObject.Parse(Request.Form["AddOns"]);
+
+            if (addOns["status"]?.ToString() == "successful") {
+                if (addOns["results"]?["ibm_watson_speechtotext"]?["status"].ToString() == "successful") {
+
+                    TwilioClient.Init(_accountSid, _authToken);
+
+                    var url = addOns["results"]?["ibm_watson_speechtotext"]?["payload"]?[0]?["url"].ToString();
+
+                    
+
+                    var client = TwilioClient.GetRestClient();
+
+                    //Get the transcript from watson
+                    var res = await client.RequestAsync(new Twilio.Http.Request(Twilio.Http.HttpMethod.Get, url));
+
+                    var watsonroot = JsonConvert.DeserializeObject<WatsonRoot>(res.Content);
+
+                    var transcript = watsonroot.results.FirstOrDefault().results.Where(r => r.final == true).FirstOrDefault().alternatives.Where(a => a.confidence != 0).FirstOrDefault();
+
+                    //Get the associated CallSid from the recording json
+                    url = addOns["results"]?["ibm_watson_speechtotext"]?["links"]?["recording"].ToString();
+                    res = await client.RequestAsync(new Twilio.Http.Request(Twilio.Http.HttpMethod.Get, url + ".json"));
+                }
+
+            }
+        }
+        [HttpPost]
+        [Route("record/transcribe")]
+        public async Task TranscribeCallback(Transcription callback)
+        {
+            if (callback.TranscriptionStatus == "completed") {
+
+                TwilioClient.Init(_accountSid, _authToken);
+
+
+                string body = $@"You have a message from: {callback.From}!
+                            Transcription: {callback.TranscriptionText}";
+
+               using(var client = new SmtpClient()) {
+                    client.Credentials = new NetworkCredential("", "");
+                    client.Host = "";
+                    client.Port = 0;
+                }
+
+
+                var message = MessageResource.Create(
+                    body: body,
+                    from: new Twilio.Types.PhoneNumber("+16477979877"),
+                    to: new Twilio.Types.PhoneNumber("+16476976677")
+                );
+
+            }
+
+           
+            //SendTranscription(text);
+            
+
+        }
 
 
         private void SendTranscription(string transcription)
@@ -105,10 +187,45 @@ namespace SilicoIVR.Controllers
                             {transcription}";
 
             var message = MessageResource.Create(
-                body: "Hello there!", 
+                body: body, 
                 from: new Twilio.Types.PhoneNumber("+16477979877"),
                 to: new Twilio.Types.PhoneNumber("+16476976677")
             );
+
+        } 
+
+        private void LookUpAddons(string number)
+        {
+            TwilioClient.Init(_accountSid, _authToken);
+
+            //var addOns = new List<string> {
+            //    "twilio_caller_name"
+            //};
+
+
+
+            //var caller = PhoneNumberResource.Fetch(
+            //    addOns: addOns,
+            //    pathPhoneNumber: new Twilio.Types.PhoneNumber(number), 
+
+            //);
+
+            //var addOnData = JObject.Parse(caller.AddOns.ToString());
+
+            //if (addOnData["status"]?.ToString() == "successful") {
+            //    if (addOnData["results"]?["whitepages_pro_caller_id"]?["status"]?.ToString() == "successful") {
+
+            //        var info = new CallerInfo({
+            //            Name = addOnData["results"]?["whitepages_pro_caller_id"]?["status"]?.ToString(),
+            //            Address = addOnData["results"]?["whitepages_pro_caller_id"]?["current_addresses"]?[].ToString()
+
+            //        })
+
+
+
+            //    }
+
+            //    }
 
         }
 
