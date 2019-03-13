@@ -1,0 +1,12 @@
+{
+  "IvrConfig": {
+    "TwilioAccountSid": "ACfb2c3e52b6217f31405de1c7676c58ec",
+    "TwilioAuthToken": "dcaaefa03f710845ee9e3741c9b3b456",
+    "EmailUser": "apikey",
+    "EmailPassword": "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",
+    "EmailHost": "smtp.sendgrid.net",
+    "EmailPort": 587
+    "EmailFrom":  "ivr@silico.ca"
+
+  }
+}

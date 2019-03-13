@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SilicoIVR.Models;
@@ -29,14 +30,15 @@ namespace SilicoIVR.Controllers
         private readonly IUrlHelper _urlHelper;
         private SilicoDBContext _context;
 
+        private readonly IvrConfig _config;
         private readonly string _accountSid;
         private readonly string _authToken;
 
-        public RecordingController(SilicoDBContext context, IUrlHelper urlHelper)
+        public RecordingController(SilicoDBContext context, IUrlHelper urlHelper, IOptions<IvrConfig> options)
         {
             _context = context;
             _urlHelper = urlHelper;
-
+            _config = options.Value;
             //These should probably be setup in a json config or DB
             _accountSid = "ACfb2c3e52b6217f31405de1c7676c58ec";//"ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
             _authToken = "dcaaefa03f710845ee9e3741c9b3b456";//"your_auth_token";
