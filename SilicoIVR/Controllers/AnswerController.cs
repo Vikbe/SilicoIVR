@@ -30,15 +30,21 @@ namespace SilicoIVR.Controllers
             _urlHelper = urlHelper;
 
             //These should probably be setup in a json config or DB
-            _accountSid = "ACfb2c3e52b6217f31405de1c7676c58ec";//"ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-            _authToken = "dcaaefa03f710845ee9e3741c9b3b456";//"your_auth_token";
+            _accountSid = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+            _authToken = "your_auth_token";
         }
 
         [HttpPost]
         [Route("answer")]
-        public IActionResult Index(CallItem call)
+        public IActionResult Index(CallParams call)
         {
             var response = new VoiceResponse();
+         
+            
+            response.Append(
+                new Gather(numDigits: 3, 
+                action: new Uri("/answer/gather/extension/en", UriKind.Relative), 
+                timeout: 1));
 
             LogCall(call).Wait();
 
@@ -121,7 +127,8 @@ namespace SilicoIVR.Controllers
                             .Play(new Uri("/AudioFiles/EnterExtension.mp3", UriKind.Relative)));
                         break;
                     case "2":
-
+                        response.Redirect(new Uri("/answer/general", UriKind.Relative));
+                      
                         break;
                     case "3":
                         break;
@@ -161,7 +168,7 @@ namespace SilicoIVR.Controllers
                             .Play(new Uri("/AudioFiles/EnterExtension.mp3", UriKind.Relative)));
                         break;
                     case "2":
-
+                        response.Redirect(new Uri("/answer/general", UriKind.Relative)); 
                         break;
                     case "3":
                         break;
@@ -187,28 +194,40 @@ namespace SilicoIVR.Controllers
 
         [Route("answer/gather/extension/en")]
         [HttpPost]
-        public IActionResult GatherExtensionEN(string digits)
+        public IActionResult GatherExtensionEN(CallParams cp)
         {
             var response = new VoiceResponse();
 
             // If the user entered digits, process their request
-            if (!string.IsNullOrEmpty(digits))
+            if (!string.IsNullOrEmpty(cp.Digits))
             {
 
                 var agent = _context.Agents
-                    .Where(a => a.Extension.ToString() == digits)
+                    .Where(a => a.Extension.ToString() == cp.Digits)
                     .FirstOrDefault();
 
                 if (agent != null)
                 {
-                    response.Say($"You will be connected to {agent.Name} shortly.").Pause();
+
+
+
+                    var call = _context.Calls.Where(c => c.SID == cp.CallSid).FirstOrDefault();
+
+                    if (call != null) {
+                        call.AgentCalled = agent;
+                        _context.Calls.Update(call);
+                        _context.SaveChanges();
+                    }
+                        
+
+
+                    //response.Say($"You will be connected to {agent.Name} shortly.").Pause();
                     var dial = new Dial(action: new Uri($"/answer/connect/{agent.ID}", UriKind.Relative));
                     dial.Number(agent.PhoneNumber, url: new Uri("/answer/screenCall", UriKind.Relative));
                   
                     response.Append(dial);
 
-                    //response.Play(new Uri("/AudioFiles/Goodbye.mp3", UriKind.Relative));
-                    //response.Hangup();
+                 
 
                     
                    
@@ -331,27 +350,29 @@ namespace SilicoIVR.Controllers
         }
 
 
-        private async Task LogCall(CallItem call)
+        private async Task LogCall(CallParams call)
         {
-            TwilioClient.Init(_accountSid, _authToken);
-
-            var addOns = new List<string> {
-                "twilio_caller_name"
-            };
+            string callerName = null;
+            string callerType = null;
 
 
-
-            var caller = PhoneNumberResource.Fetch(
-                addOns: addOns,
-                pathPhoneNumber: new Twilio.Types.PhoneNumber(call.From)
+            var addOns = JObject.Parse(call.AddOns);
 
 
-            );
+            if (addOns["status"]?.ToString() == "successful") {
+                if (addOns["results"]?["twilio_caller_name"]?["status"].ToString() == "successful") {
 
-            var addOnData = JObject.Parse(caller.AddOns.ToString()); 
+                    callerName = addOns["results"]?["twilio_caller_name"]?["result"]?["caller_name"]?["caller_name"].ToString();
+                    callerType = addOns["results"]?["twilio_caller_name"]?["result"]?["caller_name"]?["caller_type"].ToString();
+                }
+
+            }       
+            
             //NOT DOOONNNE
-            _context.Calls.Add(new Call {
+                _context.Calls.Add(new Call {
                 SID = call.CallSid,
+                Name = (!string.IsNullOrEmpty(callerName)) ? callerName : (!string.IsNullOrEmpty(call.CallerName)) ? call.CallerName : null,
+                CallerType = callerType,
                 From = call.From,
                 To = call.To,
                 Zipcode = call.CallerZip,

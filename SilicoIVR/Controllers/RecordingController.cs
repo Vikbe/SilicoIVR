@@ -1,5 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+<<<<<<< Updated upstream
 using Microsoft.Extensions.Options;
+=======
+using Microsoft.EntityFrameworkCore;
+>>>>>>> Stashed changes
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SilicoIVR.Models;
@@ -40,23 +45,28 @@ namespace SilicoIVR.Controllers
             _urlHelper = urlHelper;
             _config = options.Value;
             //These should probably be setup in a json config or DB
-            _accountSid = "ACfb2c3e52b6217f31405de1c7676c58ec";//"ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-            _authToken = "dcaaefa03f710845ee9e3741c9b3b456";//"your_auth_token";
+            _accountSid = "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+            _authToken = "your_auth_token";
         }
 
         [HttpPost]
         [Route("record/voiceMail")]
-        public TwiMLResult VoiceMail(CallItem call)
+        public TwiMLResult VoiceMail(CallParams cp)
         {
 
-            if (call.CallStatus == "completed") {
+            if (cp.CallStatus == "completed") {
                 
                 return new TwiMLResult();
             }
-           
+
+
+            var call = _context.Calls
+                .Include(c => c.AgentCalled)
+                .Where(c => c.SID == cp.CallSid).FirstOrDefault();
 
             //LookUpAddons(call.From);
             var response = new VoiceResponse();
+            response.Say(call.AgentCalled.Name);
             response.Play(new Uri("/AudioFiles/NotAvailableEn.mp3", UriKind.Relative));
          
             response.Record(
@@ -77,7 +87,7 @@ namespace SilicoIVR.Controllers
 
         //[HttpPost]
         //[Route("record/callback")]
-        //public async Task RecordCallback(RecordingCallback callback, CallItem call)
+        //public async Task RecordCallback(RecordingCallback callback, CallParams call)
         //{
            
 
@@ -184,8 +194,8 @@ namespace SilicoIVR.Controllers
 
                 var message = MessageResource.Create(
                     body: body,
-                    from: new Twilio.Types.PhoneNumber("+16477979877"),
-                    to: new Twilio.Types.PhoneNumber("+16476976677")
+                    from: new Twilio.Types.PhoneNumber("+999999999999"),
+                    to: new Twilio.Types.PhoneNumber("+999999999999")
                 );
 
             }
@@ -202,7 +212,7 @@ namespace SilicoIVR.Controllers
         //    TwilioClient.Init(_accountSid, _authToken);
 
 
-        //    string body = $@"You have a message from: I DONT FUCKING KNOW YET!
+        //    string body = $@"You have a message from: Somebody
         //                    Transcription: 
         //                    {transcription}";
 
@@ -254,16 +264,26 @@ namespace SilicoIVR.Controllers
         {
             var call = recording.Call;
             using (var client = new SmtpClient()) {
-                client.Credentials = new NetworkCredential("apikey", "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");
+                client.Credentials = new NetworkCredential("apikey", "jibberishkey");
                 client.Host = "smtp.sendgrid.net";
                 client.Port = 587;
 
+                string subject = ""; 
+                if(!string.IsNullOrEmpty(call.Name)) 
+                    subject = $"Voice message from {call.Name + " " + call.From }"; 
+                else
+                    subject = $"Voice message from {call.From }";
+
                 var message = new MailMessage();
                 message.From = new MailAddress("ivr@silico.ca");
-                message.To.Add("viktor@silico.ca");
-                message.Subject = $"Voice message from {call.From}"; 
+                message.To.Add("redacted@email.ca");
+                message.To.Add("someotheremail@email.ca");
+                message.Subject = $"Voice message from {call.Name + " " + call.From }"; 
                 message.Body =  $@"You have a message from: {call.From}!
-                            Transcription: {recording.Transcription}";
+Name: {call.Name} 
+Caller Type: {call.CallerType} 
+Location: {call.Zipcode}, {call.City}, {call.State}, {call.Country}
+Transcription: {recording.Transcription}";
                 client.Send(message);
             }
         }

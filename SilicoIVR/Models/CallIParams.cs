@@ -1,11 +1,12 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace SilicoIVR.Models
 {
-    public class CallItem
+    public class CallParams
     {
         public string Called { get; set; }
         public string ToState { get; set; }
@@ -19,6 +20,7 @@ namespace SilicoIVR.Models
         public string ToCountry { get; set; }
         public string ApiVersion { get; set; }
         public string CalledZip { get; set; }
+        public string CallerName { get; set; }
         public string CalledCity { get; set; }
         public string CallStatus { get; set; }
         public string From { get; set; }
@@ -32,6 +34,8 @@ namespace SilicoIVR.Models
         public string CalledState { get; set; }
         public string FromZip { get; set; }
         public string FromState { get; set; }
+        public string Digits { get; set; }
+        public string AddOns { get; set; }
     }
 
 }

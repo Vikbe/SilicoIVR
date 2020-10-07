@@ -12,7 +12,7 @@ namespace SilicoIVR.Models.DB
         public string SID { get; set; }
         public double duration { get; set; }
         public string Transcription { get; set; }
-        public int CallID { get; set; }
+        public int? CallID { get; set; }
 
         [ForeignKey("CallID")]
         public Call Call { get; set; }
